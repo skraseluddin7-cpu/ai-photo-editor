@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#101426">
+<title>AI Photo Studio — Photo Editor</title>
+<style>
+:root{--bg:#0d1020;--panel:#171b30;--panel2:#202642;--text:#f5f6ff;--muted:#aeb6d4;--accent:#8b7cff;--accent2:#4de0c1;--line:#303754}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top,#1c2142 0,#0d1020 58%);color:var(--text);font-family:system-ui,-apple-system,"Noto Sans Bengali",sans-serif}
+.wrap{max-width:1100px;margin:auto;padding:16px}.hero{padding:24px 20px;border:1px solid var(--line);border-radius:24px;background:linear-gradient(120deg,#252b52,#171b30 70%);margin-bottom:16px}
+.brand{font-size:13px;letter-spacing:2px;color:var(--accent2);font-weight:800}.hero h1{font-size:clamp(28px,5vw,42px);margin:8px 0}.hero p{color:var(--muted);line-height:1.7;margin:0}
+.layout{display:grid;grid-template-columns:1fr;gap:16px}@media(min-width:850px){.layout{grid-template-columns:1.05fr .95fr}}
+.panel{background:rgba(23,27,48,.96);border:1px solid var(--line);border-radius:20px;padding:16px;min-width:0}.panel h2{font-size:19px;margin:0 0 12px}.sub{font-size:13px;color:var(--muted);line-height:1.65}
+.previewbox{min-height:230px;border:1px dashed #555e83;border-radius:16px;background:#101426;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative}
+canvas{display:block;max-width:100%;max-height:560px;object-fit:contain}.empty{text-align:center;padding:32px;color:var(--muted)}.empty .emoji{font-size:42px}
+label{display:block;font-size:14px;font-weight:700;margin:14px 0 7px}input[type=file],input[type=text],textarea,select{width:100%;border:1px solid var(--line);border-radius:11px;background:#101426;color:var(--text);padding:11px;font:inherit}
+textarea{min-height:94px;resize:vertical}input[type=range]{width:100%;accent-color:var(--accent)}.rangehead{display:flex;justify-content:space-between;font-size:13px;color:var(--muted);gap:8px}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+button{border:1px solid var(--line);background:var(--panel2);color:var(--text);border-radius:11px;padding:11px 10px;font:inherit;font-size:14px;font-weight:700;cursor:pointer;min-width:0}
+button:active{transform:scale(.99)}button.primary{background:linear-gradient(100deg,#7768ff,#a05cff);border:0;color:white}button.good{background:#123e3a;border-color:#216a60}button:disabled{opacity:.4;cursor:not-allowed}.actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}.presets button{padding:9px 4px;font-size:12px}.divider{height:1px;background:var(--line);margin:16px 0}.notice{background:#2c2941;border:1px solid #4e4778;padding:12px;border-radius:12px;color:#e3ddff;font-size:13px;line-height:1.65;margin-top:12px}.status{font-size:13px;color:var(--accent2);line-height:1.6;margin-top:10px;white-space:pre-wrap}.foot{text-align:center;color:var(--muted);font-size:12px;padding:20px 6px}.pill{display:inline-block;background:#262b49;border-radius:999px;padding:5px 9px;font-size:12px;color:#d5d9ff;margin:4px 3px 0 0}
+</style>
+</head>
+<body>
+<main class="wrap">
+<header class="hero">
+ <div class="brand">SKRASEL LABS · CREATIVE TOOLS</div>
+ <h1>✨ AI Photo Studio</h1>
+ <p>ছবি আপলোড করুন, রং ও আলো ঠিক করুন, ফিল্টার দিন, ঘোরান/ফ্লিপ করুন, AI এডিটের নির্দেশনা বানান এবং ফলাফল ডাউনলোড করুন। মোবাইলেও ব্যবহারযোগ্য।</p>
+ <span class="pill">রং ঠিক করা</span><span class="pill">ফিল্টার</span><span class="pill">রোটেট</span><span class="pill">AI prompt</span><span class="pill">ডাউনলোড</span>
+</header>
+<div class="layout">
+<section class="panel">
+ <h2>১. ছবি</h2>
+ <label for="upload">ফোন থেকে ছবি বেছে নিন</label><input id="upload" type="file" accept="image/*">
+ <div class="previewbox" style="margin-top:12px"><div class="empty" id="empty"><div class="emoji">🖼️</div><strong>আপনার ছবি এখানে দেখা যাবে</strong><p class="sub">JPG, PNG বা WebP ছবি নির্বাচন করুন</p></div><canvas id="canvas" hidden></canvas></div>
+ <div class="actions"><button id="rotateL" disabled>↶ বামে ঘোরান</button><button id="rotateR" disabled>↷ ডানে ঘোরান</button><button id="flipH" disabled>↔ উল্টান</button><button id="flipV" disabled>↕ উল্টান</button></div>
+ <div class="grid2" style="margin-top:8px"><button id="reset" disabled>মূল অবস্থায় ফেরান</button><button class="primary" id="download" disabled>⬇️ এডিট করা ছবি ডাউনলোড</button></div>
+ <p class="sub">আপনার ছবি এই পেজে আপনার ব্রাউজারেই প্রসেস হয়; এই ডেমো নিজে থেকে ছবি সার্ভারে আপলোড করে না।</p>
+</section>
+<section class="panel">
+ <h2>২. এডিট টুলস</h2>
+ <label>দ্রুত ফিল্টার</label>
+ <div class="grid3 presets">
+  <button data-preset="natural">🌿 ন্যাচারাল</button><button data-preset="vivid">🌈 Vivid</button><button data-preset="warm">🌅 Warm</button>
+  <button data-preset="cool">🧊 Cool</button><button data-preset="bw">⚫ সাদা-কালো</button><button data-preset="vintage">📷 Vintage</button>
+  <button data-preset="portrait">👤 Portrait</button><button data-preset="dramatic">🎬 Dramatic</button><button data-preset="soft">☁️ Soft</button>
+ </div>
+ <div class="divider"></div>
+ <div class="rangehead"><label for="brightness" style="margin:0">উজ্জ্বলতা</label><span id="brightnessVal">100%</span></div><input id="brightness" type="range" min="40" max="180" value="100">
+ <div class="rangehead"><label for="contrast" style="margin:0">কনট্রাস্ট</label><span id="contrastVal">100%</span></div><input id="contrast" type="range" min="40" max="180" value="100">
+ <div class="rangehead"><label for="saturation" style="margin:0">রঙের উজ্জ্বলতা</label><span id="saturationVal">100%</span></div><input id="saturation" type="range" min="0" max="220" value="100">
+ <div class="rangehead"><label for="blur" style="margin:0">সফট ব্লার</label><span id="blurVal">0px</span></div><input id="blur" type="range" min="0" max="4" step=".5" value="0">
+ <label for="ratio">ক্যানভাস অনুপাত</label><select id="ratio"><option value="original">মূল অনুপাত</option><option value="1">1:1 — Square</option><option value="4/5">4:5 — Portrait post</option><option value="9/16">9:16 — Story</option><option value="16/9">16:9 — Landscape</option></select>
+ <div class="divider"></div>
+ <h2>৩. AI দিয়ে কী পরিবর্তন চান?</h2>
+ <label for="prompt">আপনার নির্দেশনা লিখুন</label>
+ <textarea id="prompt" placeholder="যেমন: iPhone-এর মতো vivid color দিন, ঘাস সবুজ ও আকাশ নীল করুন, মুখ ও পোশাক অপরিবর্তিত রাখুন।"></textarea>
+ <div class="grid2"><button data-prompt="Make the colors vivid and crisp, enhance natural green grass and deep blue sky, preserve the person's face and clothing.">📱 iPhone Vivid</button><button data-prompt="Replace the background with a clean, elegant studio background while preserving the subject's identity, face, pose and clothing.">🌆 ব্যাকগ্রাউন্ড</button><button data-prompt="Improve portrait lighting and clarity, keep skin texture natural, preserve identity and facial features.">✨ Portrait enhance</button><button data-prompt="Remove distracting background objects, keep the main subject unchanged and make the result natural.">🧹 Object cleanup</button></div>
+ <button class="primary" id="makePrompt" style="width:100%;margin-top:12px">AI এডিট নির্দেশনা তৈরি ও কপি</button>
+ <div class="status" id="status" aria-live="polite"></div>
+ <div class="notice"><strong>গুরুত্বপূর্ণ:</strong> এই ফাইলে আলো, রং, ফিল্টার, ঘোরানো, ফ্লিপ এবং ডাউনলোড কাজ করবে। সত্যিকারের AI background removal, object removal, generative fill বা text দিয়ে ছবি বদলানোর জন্য আলাদা AI API/সার্ভার যুক্ত করতে হবে। নিরাপত্তার জন্য API key সরাসরি HTML ফাইলে রাখা উচিত নয়।</div>
+</section>
+</div>
+<footer class="foot">AI Photo Studio · একটি ব্রাউজার-ভিত্তিক এডিটর ডেমো</footer>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+const canvas=$('canvas'),ctx=canvas.getContext('2d');
+let img=null,rotation=0,flipX=1,flipY=1,baseW=0,baseH=0,sourceName='photo';
+const defaults={brightness:100,contrast:100,saturation:100,blur:0};
+const presets={
+ natural:{brightness:103,contrast:103,saturation:108,blur:0},
+ vivid:{brightness:108,contrast:112,saturation:155,blur:0},
+ warm:{brightness:105,contrast:105,saturation:115,blur:0},
+ cool:{brightness:103,contrast:108,saturation:112,blur:0},
+ bw:{brightness:105,contrast:120,saturation:0,blur:0},
+ vintage:{brightness:105,contrast:90,saturation:75,blur:.2},
+ portrait:{brightness:108,contrast:105,saturation:112,blur:0},
+ dramatic:{brightness:95,contrast:140,saturation:120,blur:0},
+ soft:{brightness:110,contrast:90,saturation:95,blur:.5}
+};
+function hasImage(){return !!img}
+function enableTools(on){['rotateL','rotateR','flipH','flipV','reset','download'].forEach(id=>$(id).disabled=!on)}
+function readSettings(){return {brightness:+$('brightness').value,contrast:+$('contrast').value,saturation:+$('saturation').value,blur:+$('blur').value}}
+function setSettings(s){Object.keys(s).forEach(k=>{$(k).value=s[k];$(k+'Val').textContent=k==='blur'?s[k]+'px':s[k]+'%' });render()}
+function render(){
+ if(!img)return;
+ const swap=Math.abs(rotation%180)===90;
+ let w=swap?baseH:baseW,h=swap?baseW:baseH;
+ const ratio=$('ratio').value;
+ if(ratio!=='original'){
+  const [a,b]=ratio.split('/').map(Number);const target=a/b;
+  if(w/h>target)w=h*target;else h=w/target;
+ }
+ const max=1800,scale=Math.min(1,max/Math.max(w,h));canvas.width=Math.max(1,Math.round(w*scale));canvas.height=Math.max(1,Math.round(h*scale));
+ ctx.clearRect(0,0,canvas.width,canvas.height);
+ const s=readSettings();ctx.save();ctx.filter=`brightness(${s.brightness}%) contrast(${s.contrast}%) saturate(${s.saturation}%) blur(${s.blur*scale}px)`;
+ ctx.translate(canvas.width/2,canvas.height/2);ctx.rotate(rotation*Math.PI/180);ctx.scale(flipX,flipY);
+ let dw=baseW*scale,dh=baseH*scale;
+ // Center-crop to the selected ratio before applying transforms.
+ if(ratio!=='original'){
+   const target=(ratio==='1')?1:(ratio==='4/5'?4/5:(ratio==='9/16'?9/16:16/9));
+   if(baseW/baseH>target)dw=dh*target;else dh=dw/target;
+ }
+ ctx.drawImage(img,-dw/2,-dh/2,dw,dh);ctx.restore();canvas.hidden=false;$('empty').hidden=true;
+}
+$('upload').addEventListener('change',e=>{
+ const file=e.target.files&&e.target.files[0];if(!file)return;
+ if(!file.type.startsWith('image/')){$('status').textContent='অনুগ্রহ করে একটি ছবি ফাইল বেছে নিন।';return}
+ const url=URL.createObjectURL(file),image=new Image();
+ image.onload=()=>{img=image;baseW=image.naturalWidth;baseH=image.naturalHeight;rotation=0;flipX=1;flipY=1;sourceName=(file.name||'photo').replace(/\.[^.]+$/,'');enableTools(true);setSettings(defaults);URL.revokeObjectURL(url);$('status').textContent='ছবি প্রস্তুত। এখন ফিল্টার বা এডিট টুল ব্যবহার করুন।'};
+ image.onerror=()=>{$('status').textContent='ছবিটি খোলা যায়নি। অন্য ছবি চেষ্টা করুন।';URL.revokeObjectURL(url)};
+ image.src=url;
+});
+['brightness','contrast','saturation','blur'].forEach(k=>$(k).addEventListener('input',()=>{const v=$(k).value;$(k+'Val').textContent=k==='blur'?v+'px':v+'%';render()}));
+$('ratio').addEventListener('change',render);
+$('rotateL').onclick=()=>{rotation=(rotation+270)%360;render()};
+$('rotateR').onclick=()=>{rotation=(rotation+90)%360;render()};
+$('flipH').onclick=()=>{flipX*=-1;render()};
+$('flipV').onclick=()=>{flipY*=-1;render()};
+$('reset').onclick=()=>{rotation=0;flipX=1;flipY=1;$('ratio').value='original';setSettings(defaults)};
+document.querySelectorAll('[data-preset]').forEach(b=>b.addEventListener('click',()=>{if(!img){$('status').textContent='আগে একটি ছবি বেছে নিন।';return}setSettings(presets[b.dataset.preset])}));
+$('download').onclick=()=>{if(!img)return;const a=document.createElement('a');a.download=sourceName+'-edited.png';a.href=canvas.toDataURL('image/png');a.click();$('status').textContent='এডিট করা ছবি ডাউনলোড শুরু হয়েছে।'};
+document.querySelectorAll('[data-prompt]').forEach(b=>b.addEventListener('click',()=>{$('prompt').value=b.dataset.prompt;$('status').textContent='নির্দেশনা বসানো হয়েছে। চাইলে নিজের মতো বদলান।'}));
+$('makePrompt').onclick=async()=>{
+ const p=$('prompt').value.trim();if(!p){$('status').textContent='আগে AI-কে কী করতে হবে তা লিখুন বা একটি নির্দেশনা বেছে নিন।';return}
+ const final='Edit the uploaded image according to this request: '+p+'\nPreserve the subject identity, face, pose and clothing unless explicitly asked otherwise. Produce a natural, high-quality result.';
+ try{await navigator.clipboard.writeText(final);$('status').textContent='AI নির্দেশনা কপি হয়েছে। এবার এটি ছবি-সমর্থিত AI editing সেবায় ছবি ও নির্দেশনার সঙ্গে ব্যবহার করুন।'}
+ catch(e){const t=document.createElement('textarea');t.value=final;document.body.appendChild(t);t.select();document.execCommand('copy');t.remove();$('status').textContent='AI নির্দেশনা তৈরি হয়েছে। কপি করার চেষ্টা করা হয়েছে; প্রয়োজনে লেখাটি নির্বাচন করে কপি করুন.'}
+};
+</script>
+</body></html>
